@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BookScan</title>
+    <style>
+        /*  CSS Styles - same as before, included here for completeness */
+        body {
+            font-family: sans-serif;
+            margin: 0;
+            padding: 0;
+            color: #333;
+            background-color: #f4f4f4;
+        }
+
+        header {
+            background-color: #ffffff;
+            color: #333;
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .logo {
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+
+        nav a {
+            color: #555;
+            text-decoration: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            transition: background-color 0.3s ease;
+        }
+
+        nav a:hover {
+            background-color: #e0e0e0;
+        }
+
+        main {
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .upload-section, .results-section {
+            width: 90%;
+            max-width: 800px;
+            margin-bottom: 20px;
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            text-align: center;
+        }
+
+        .upload-container h2, .results-section h2 {
+            margin-top: 0;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .upload-container p {
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        .image-preview-container {
+            width: 80%; /* Take more width in upload container */
+            max-width: 500px; /* Maximum width */
+            height: auto; /* Adjust height dynamically based on width to be square */
+            aspect-ratio: 1 / 1; /* Enforce square aspect ratio */
+            margin: 20px auto;
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .image-preview {
+            display: none;
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain; /* Ensure full image is always visible */
+        }
+
+        .placeholder-text {
+            position: absolute;
+            color: #aaa;
+        }
+
+        .button {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 5px;
+            background-color: #ddd;
+            color: #333;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.3s ease;
+            margin: 5px;
+        }
+
+        .button:hover {
+            background-color: #ccc;
+        }
+
+        .button.primary-button {
+            background-color: #6759FF;
+            color: white;
+        }
+
+        .button.primary-button:hover {
+            background-color: #5247cc;
+        }
+
+        .button:disabled {
+            background-color: #eee;
+            color: #999;
+            cursor: default;
+        }
+
+        .button:disabled:hover {
+            background-color: #eee;
+        }
+
+
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .book-item {
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 15px;
+            background-color: #f9f9f9;
+            text-align: left;
+        }
+
+        .book-cover {
+            width: 100%;
+            height: auto;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+
+        .book-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .book-author, .book-genre {
+            color: #777;
+            font-size: 0.9em;
+            margin-bottom: 3px;
+        }
+
+
+        footer {
+            background-color: #4a4a4a;
+            color: #fff;
+            padding: 20px 30px;
+            text-align: center;
+        }
+
+        .footer-content {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        footer a {
+            color: #fff;
+            text-decoration: none;
+        }
+
+        .social-icons {
+            margin-top: 10px;
+        }
+
+        .social-icons img {
+            width: 25px;
+            height: 25px;
+            margin: 0 5px;
+            vertical-align: middle;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            header {
+                padding: 15px 20px;
+                flex-direction: column;
+                text-align: center;
+            }
+            nav {
+                margin-top: 10px;
+            }
+            nav a {
+                padding: 8px 12px;
+                margin: 0 5px;
+            }
+            .upload-section, .results-section {
+                padding: 20px;
+            }
+            .image-preview-container {
+                width: 95%; /* Take more width on smaller screens */
+                max-width: none; /* Remove max-width for better responsiveness */
+            }
+            .results-grid {
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            }
+        }
+    </style>
+    <script src="https://unpkg.com/tesseract.js@v5.0.3/dist/tesseract.min.js"></script>
+</head>
+<body>
+    <header>
+        <div class="logo">BookScan</div>
+        <nav>
+            <a href="#">Home</a>
+            <a href="#">Upload</a>
+            <a href="#">Results</a>
+        </nav>
+    </header>
+
+    <main>
+        <section class="upload-section">
+            <div class="upload-container">
+                <h2>Upload Your Image</h2>
+                <p>Please upload a picture of your books or bookshelves for analysis. Accepted formats: JPG, PNG.</p>
+                <div class="image-preview-container">
+                    <img id="uploadedImage" src="#" alt="Uploaded Image Preview" class="image-preview">
+                    <div id="placeholderText" class="placeholder-text">No image selected</div>
+                </div>
+
+                <input type="file" id="imageUpload" accept="image/jpeg, image/png" style="display: none;">
+                <button id="selectImageButton" class="button">Select Image</button>
+                <button id="proceedButton" class="button primary-button" disabled>Proceed to Analysis</button>
+            </div>
+        </section>
+
+        <section class="results-section" id="resultsSection" style="display: none;">
+            <h2>Analysis Results</h2>
+            <div class="results-grid" id="resultsGrid">
+                </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="footer-content">
+            <p>Contact us at <a href="mailto:support@bookscan.com">support@bookscan.com</a></p>
+            <p>Follow us on social media</p>
+            <div class="social-icons">
+                <a href="#" target="_blank"><img src="img/facebook-icon.png" alt="Facebook"></a>
+                <a href="#" target="_blank"><img src="img/twitter-icon.png" alt="Twitter"></a>
+                <a href="#" target="_blank"><img src="img/instagram-icon.png" alt="Instagram"></a>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const selectImageButton = document.getElementById('selectImageButton');
+            const imageUpload = document.getElementById('imageUpload');
+            const uploadedImage = document.getElementById('uploadedImage');
+            const placeholderText = document.getElementById('placeholderText');
+            const proceedButton = document.getElementById('proceedButton');
+            const resultsSection = document.getElementById('resultsSection');
+            const resultsGrid = document.getElementById('resultsGrid');
+
+            let uploadedFile = null;
+
+            selectImageButton.addEventListener('click', () => {
+                imageUpload.click();
+            });
+
+            imageUpload.addEventListener('change', function() {
+                uploadedFile = this.files[0];
+                if (uploadedFile) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        uploadedImage.src = e.target.result;
+                        uploadedImage.style.display = 'block';
+                        placeholderText.style.display = 'none';
+                    }
+                    reader.readAsDataURL(uploadedFile);
+                    proceedButton.disabled = false;
+                } else {
+                    resetImagePreview();
+                }
+            });
+
+            proceedButton.addEventListener('click', () => {
+                if (uploadedFile) {
+                    analyzeImageForBooks(); // Call OCR and Google Books API
+                } else {
+                    alert("Please select an image first.");
+                }
+            });
+
+            function resetImagePreview() {
+                uploadedImage.src = '#';
+                uploadedImage.style.display = 'none';
+                placeholderText.style.display = 'block';
+                proceedButton.disabled = true;
+                uploadedFile = null;
+            }
+
+            async function analyzeImageForBooks() {
+                proceedButton.textContent = 'Analyzing...';
+                proceedButton.disabled = true;
+                resultsGrid.innerHTML = 'Analyzing image and fetching book data...'; // Initial message in results
+
+                try {
+                    const text = await performOCR(uploadedImage); // Perform OCR
+                    if (text) {
+                        const bookTitles = extractBookTitlesFromText(text); // Basic title extraction
+                        if (bookTitles.length > 0) {
+                            const bookData = await fetchBookDataFromGoogleBooks(bookTitles); // Fetch from Google Books
+                            if (bookData && bookData.length > 0) {
+                                displayBookResults(bookData); // Display results
+                            } else {
+                                displayNoResults("No book data found for the titles extracted.");
+                            }
+                        } else {
+                            displayNoResults("No book titles found in the image text.");
+                        }
+                    } else {
+                        displayNoResults("Could not extract text from the image.");
+                    }
+                } catch (error) {
+                    console.error("Analysis error:", error);
+                    displayNoResults("Error during analysis. Please try again.");
+                } finally {
+                    proceedButton.textContent = 'Proceed to Analysis';
+                    proceedButton.disabled = false;
+                }
+            }
+
+            async function performOCR(imageElement) {
+                try {
+                    const result = await Tesseract.recognize(
+                        imageElement.src,
+                        'eng', // English language
+                        { logger: m => console.log(m) } // Optional logger
+                    );
+                    return result.data.text;
+                } catch (error) {
+                    console.error("OCR Error:", error);
+                    return null;
+                }
+            }
+
+            function extractBookTitlesFromText(ocrText) {
+                // Basic title extraction - split text by lines and consider each line as a potential title.
+                // This is very basic and will need refinement for real-world accuracy.
+                const lines = ocrText.split('\n').filter(line => line.trim() !== '');
+                return lines;
+            }
+
+            async function fetchBookDataFromGoogleBooks(titles) {
+                const bookResults = [];
+                for (const title of titles) {
+                    try {
+                        const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(title)}&maxResults=1`);
+                        if (!response.ok) {
+                            console.error(`HTTP error! status: ${response.status} for title: ${title}`);
+                            continue; // Skip to the next title if API call fails
+                        }
+                        const data = await response.json();
+                        if (data.items && data.items.length > 0) {
+                            const bookInfo = data.items[0].volumeInfo;
+                            bookResults.push({
+                                title: bookInfo.title || 'Title not found',
+                                author: (bookInfo.authors && bookInfo.authors.join(', ')) || 'Author not found',
+                                genre: (bookInfo.categories && bookInfo.categories.join(', ')) || 'Genre not found',
+                                coverImage: bookInfo.imageLinks?.thumbnail || 'img/placeholder-cover.png' // Use placeholder if no thumbnail
+                            });
+                        }
+                    } catch (error) {
+                        console.error("Google Books API error:", error);
+                    }
+                }
+                return bookResults;
+            }
+
+
+            function displayBookResults(books) {
+                resultsGrid.innerHTML = ''; // Clear "Analyzing..." message
+                resultsSection.style.display = 'block';
+                if (books.length === 0) {
+                    displayNoResults("No books found for the given image.");
+                    return;
+                }
+
+                books.forEach(book => {
+                    const bookItem = document.createElement('div');
+                    bookItem.classList.add('book-item');
+                    bookItem.innerHTML = `
+                        <img src="${book.coverImage}" alt="${book.title} Cover" class="book-cover" onerror="this.src='img/placeholder-cover.png'">
+                        <h3 class="book-title">${book.title}</h3>
+                        <p class="book-author">By ${book.author}</p>
+                        <p class="book-genre">Genre: ${book.genre}</p>
+                    `;
+                    resultsGrid.appendChild(bookItem);
+                });
+            }
+
+            function displayNoResults(message) {
+                resultsSection.style.display = 'block';
+                resultsGrid.innerHTML = `<p>${message}</p>`;
+            }
+        });
+    </script>
+     <img src="img/facebook-icon.png" style="display:none">
+    <img src="img/twitter-icon.png" style="display:none">
+    <img src="img/instagram-icon.png" style="display:none">
+    <img src="img/placeholder-cover.png" style="display:none">
+</body>
+</html>
